@@ -1,15 +1,13 @@
-# 迁移自Esp32/baidu_audio.py
-# 需检查MicroPython相关内容并适配为标准Python
-# 其余功能结构和流程保持不变
-
-# ... existing code ... 
-
 import json
 import time
 import binascii
+import tty
 import requests
 import asyncio
 import uuid
+import subprocess
+import wave
+import numpy as np
 
 # 配置音频采样率与设备ID
 audiorate = 16000
@@ -87,7 +85,7 @@ def recongize(apikey, sercretkey, audiofile, dev_pid=80001, chunk_size=4096):
         if response:
             response.close()
 
-async def speech_tts(apikey, sercretkey, text_tts):
+async def speech_tts(apikey, sercretkey, text_tts, play_on_i2s=True, aue=6, audio_ctrl='{"sampling_rate":16000}'):
     token = get_token(apikey, sercretkey)
     text = binascii.hexlify(text_tts.encode('utf-8')).decode("utf-8")
     text_urlencode = ''
@@ -95,20 +93,30 @@ async def speech_tts(apikey, sercretkey, text_tts):
         if i % 2 == 0:
             text_urlencode += '%'
         text_urlencode += text[i]
-    tts_url = f'http://tsn.baidu.com/text2audio?tex={text_urlencode}&tok={token}&cuid={dev_cuid}&ctp=1&lan=zh&spd=5&vol=5&per=111&aue=6'
+    tts_url = (
+        f'http://tsn.baidu.com/text2audio?tex={text_urlencode}&tok={token}'
+        f'&cuid={dev_cuid}&ctp=1&lan=zh&spd=5&vol=5&per=111'
+        f'&aue={aue}&audio_ctrl={audio_ctrl}'
+    )
     try:
         response = requests.get(tts_url, stream=True)
-        if response.status_code != 200:
-            raise ValueError(f"TTS请求失败，状态码: {response.status_code}")
-        # 保存音频流到文件
-        with open("tts_output.wav", "wb") as f:
+        content_type = response.headers.get("Content-Type", "")
+        if not content_type.startswith("audio"):
+            print("TTS合成失败，返回内容：")
+            print(response.text)
+            return
+        # 根据aue决定后缀
+        ext = ".wav" if aue == 6 else ".mp3" if aue == 3 else ".pcm"
+        filename = f"tts_output{ext}"
+        with open(filename, "wb") as f:
             for chunk in response.iter_content(chunk_size=1024):
                 if chunk:
                     f.write(chunk)
-        print("TTS音频已保存为 tts_output.wav")
-        # 可选：播放音频（需安装playsound或pyaudio/wave等）
-        # from playsound import playsound
-        # playsound("tts_output.wav")
+        print(f"TTS音频已保存为 {filename}")
+        if play_on_i2s and aue == 6:
+            play_wav_on_i2s(filename)
+        elif play_on_i2s and aue == 4:
+            print("如需播放pcm请先转换为wav")
     except Exception as e:
         print(f"TTS处理异常: {str(e)}")
         raise
@@ -116,15 +124,45 @@ async def speech_tts(apikey, sercretkey, text_tts):
         if response:
             response.close()
 
+def play_wav_on_i2s(filename):
+    # 检查声道数，如果是单声道，自动转为双声道
+    with wave.open(filename, 'rb') as wf:
+        channels = wf.getnchannels()
+        if channels == 1:
+            # 读取音频数据
+            frames = wf.readframes(wf.getnframes())
+            audio = np.frombuffer(frames, dtype=np.int16)
+            # 复制为双声道
+            stereo = np.column_stack((audio, audio)).flatten().astype(np.int16)
+            # 保存为临时双声道文件
+            outname = filename.replace('.wav', '_2ch.wav')
+            with wave.open(outname, 'wb') as outwf:
+                outwf.setnchannels(2)
+                outwf.setsampwidth(wf.getsampwidth())
+                outwf.setframerate(wf.getframerate())
+                outwf.writeframes(stereo.tobytes())
+            filename = outname
+    cmd = [
+        "aplay",
+        "-D", "hw:0,0",
+        "-f", "S16_LE",
+        "-r", "16000",
+        "-c", "2",
+        filename
+    ]
+    print(f"[I2S] 正在播放: {filename}")
+    subprocess.run(cmd, check=True)
+
 if __name__ == "__main__":
-    apikey = "your_api_key"
-    sercretkey = "your_secret_key"
-    try:
-        recognized_text = recongize(apikey, sercretkey, "recording.wav")
-        print(f"识别结果: {recognized_text}")
-    except ValueError as e:
-        print(f"语音识别错误: {e}")
-    try:
-        asyncio.run(speech_tts(apikey, sercretkey, "你好，世界！"))
-    except Exception as e:
-        print(f"语音合成错误: {e}") 
+    play_wav_on_i2s("tts_output.wav")
+    #apikey = "your_api_key"
+    #sercretkey = "your_secret_key"
+    #try:
+    #    recognized_text = recongize(apikey, sercretkey, "recording.wav")
+    #    print(f"识别结果: {recognized_text}")
+    #except ValueError as e:
+    #    print(f"语音识别错误: {e}")
+    #try:
+    #    asyncio.run(speech_tts(apikey, sercretkey, "你好，世界！"))
+    #except Exception as e:
+    #    print(f"语音合成错误: {e}") 

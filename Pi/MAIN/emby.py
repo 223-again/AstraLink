@@ -1,14 +1,10 @@
-# 迁移自Esp32/emby.py
-# 需检查MicroPython相关内容并适配为标准Python
-# 其余功能结构和流程保持不变
-
 import requests
 import json
 import base64
 import asyncio
 
 async def send_movie_name(movie_name):
-    url = "http://192.168.101.217:5000/play" # 播放端IP(电脑)
+    url = "http://192.168.101.217:5001/play" # 播放端IP(电脑)
     data = {"movie_name": movie_name}
     json_data = json.dumps(data)
     # Base64 编码

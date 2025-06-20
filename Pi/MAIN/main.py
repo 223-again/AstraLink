@@ -1,9 +1,8 @@
 import asyncio
-import os
-from mic import *  # 需确保mic.py兼容树莓派
+from mic import *
 from baidu_audio import recongize, speech_tts
 from silicon_deepseek import ask_question
-from active import TriggerManager  # 需确保TriggerManager兼容树莓派
+from active import TriggerManager  
 from load_config import *
 from ha_command import ha_action
 from send_data import send_data
@@ -21,39 +20,46 @@ class Application:
         self.config = load_config()
         if not self.config:
             raise RuntimeError("配置加载失败")
-        
+        # 检查关键字段
+        if "baidu" not in self.config or "api_key" not in self.config["baidu"] or "secret_key" not in self.config["baidu"]:
+            raise RuntimeError("配置文件缺少 baidu.api_key 或 baidu.secret_key")
+        if "silicon" not in self.config or "api_token" not in self.config["silicon"]:
+            raise RuntimeError("配置文件缺少 silicon.api_token")
         await self.connect_wifi()
         self.init_trigger_manager()
         print("系统初始化完成")
 
     async def connect_wifi(self):
-        # 树莓派通常已联网，或用标准库联网。此处可根据实际情况适配
         try:
-            # 假设树莓派已联网，直接发送网络状态
-            print("WiFi连接成功（假定）")
+            print("WiFi连接成功")
             await send_data("wifi_quality", "N/A")
         except Exception as e:
             print(f"WiFi连接失败: {e}")
             raise
 
     def init_trigger_manager(self):
-        # 需适配TriggerManager为树莓派串口/IO实现
         self.trigger_manager = TriggerManager(
             handler=self.handle_trigger_actions,
-            uart_num=1,  # 需适配
             baudrate=9600,
-            rx_pin=9     # 需适配
+            serial_port='/dev/ttyUSB0' 
         )
         asyncio.create_task(self.trigger_manager.process_triggers())
         print("串口触发器已初始化")
 
     async def handle_trigger_actions(self):
+        if not self.config or \
+           "baidu" not in self.config or \
+           "api_key" not in self.config["baidu"] or \
+           "secret_key" not in self.config["baidu"] or \
+           "silicon" not in self.config or \
+           "api_token" not in self.config["silicon"]:
+            print("配置未正确初始化，无法执行后续操作")
+            return
         await send_data("status", 1)
         global movie_name
         text = ""
-        response = {}
+        response = None
         try:
-            # 唤醒语音合成
             active_response = random.choice([
                 "你好，我在呢。",
                 "你好，需要帮忙吗？",
@@ -68,8 +74,8 @@ class Application:
             )
 
             # 录音处理
-            recorder = AudioRecorder()  # 需确保AudioRecorder兼容树莓派
-            recorder.record_audio(5, "recording.wav")
+            recorder = AudioRecorder() 
+            recorder.record_audio_pcm(5, "recording.wav")
             recorder.deinit()
 
             # 语音识别
@@ -121,7 +127,7 @@ class Application:
                 print(f"任务执行异常: {e}")
                 await send_data("ai_chat", "任务执行异常", str(e))
         finally:
-            await send_data("ai_chat", text, response.get("audio_content", ""))
+            await send_data("ai_chat", text, response.get("audio_content", "") if isinstance(response, dict) else "")
             await send_data("status", 0)
 
 async def main():
@@ -132,7 +138,6 @@ async def main():
             await asyncio.sleep(3600)
     except Exception as e:
         print(f"系统崩溃: {e}")
-        # 执行紧急恢复操作
 
 if __name__ == '__main__':
     asyncio.run(main()) 

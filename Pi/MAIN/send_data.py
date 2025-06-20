@@ -1,7 +1,3 @@
-# 迁移自Esp32/send_data.py
-# 需检查MicroPython相关内容并适配为标准Python
-# 其余功能结构和流程保持不变
-
 import json
 import requests
 import asyncio
@@ -13,7 +9,7 @@ ENDPOINTS = {
     "emoji":       "/api/mood"
 }
 
-HOST = "http://192.168.101.246:5000"
+HOST = "http://127.0.0.1:5000"
 
 async def send_data(attr, content1, content2="", timeout=5):
     path = ENDPOINTS.get(attr)

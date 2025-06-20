@@ -1,15 +1,9 @@
-# 迁移自Esp32/active.py
-# 需检查MicroPython相关内容并适配为标准Python
-# 其余功能结构和流程保持不变
-
-# ... existing code ... 
-
 import serial
 import asyncio
 import time
 
 class TriggerManager:
-    def __init__(self, handler, uart_num=1, baudrate=9600, rx_pin=None, serial_port='/dev/ttyS0'):
+    def __init__(self, handler, uart_num=1, baudrate=9600, rx_pin=None, serial_port='/dev/ttyUSB0'):
         # serial_port需根据实际树莓派串口设备名调整
         self.ser = serial.Serial(serial_port, baudrate=baudrate, timeout=0.1)
         self._trigger_event = asyncio.Event()

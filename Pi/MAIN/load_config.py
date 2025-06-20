@@ -1,10 +1,6 @@
-# 迁移自Esp32/load_config.py
-# 需检查MicroPython相关内容并适配为标准Python
-# 其余功能结构和流程保持不变
-
 import json
 
-def load_config(filename="config.json"):
+def load_config(filename="Pi/MAIN/config.json"):
     """加载 JSON 配置文件"""
     try:
         with open(filename, "r", encoding="utf-8") as f:

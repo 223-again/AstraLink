@@ -1,14 +1,13 @@
-# 迁移自Esp32/ha_command.py
-# 需检查MicroPython相关内容并适配为标准Python
-# 其余功能结构和流程保持不变
-
 import requests
 import json
 import asyncio
+from load_config import load_config
 
-# 请根据你的 Home Assistant 实例地址进行修改
-HA_URL = "http://192.168.101.246:8123"
-API_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIzZmQ1ZDI1NGZhNTA0NTRhOTRhZDRjYzYyZGU5MWVkYyIsImlhdCI6MTc0MTY5NjI0NywiZXhwIjoyMDU3MDU2MjQ3fQ.dIc5ebY-FBbCApzPNKcfUweKxpdoKIx9EddOdGmbEV8"
+config = load_config()
+if not config or "ha" not in config or "url" not in config["ha"] or "api_token" not in config["ha"]:
+    raise RuntimeError("配置文件缺少 ha.url 或 ha.api_token")
+HA_URL = config["ha"]["url"]
+API_TOKEN = config["ha"]["api_token"]
 
 async def call_scene(scene_entity):
     url = HA_URL + "/api/services/scene/turn_on"

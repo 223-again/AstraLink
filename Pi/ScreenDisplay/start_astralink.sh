@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # --- 配置 ---
-FLASK_APP_PATH="/home/Shattered/AstraLink/app.py"
-VENV_ACTIVATE_SCRIPT="/home/Shattered/AstraLink/env/bin/activate"
+FLASK_APP_PATH="/home/Shattered/AstraLink/Pi/ScreenDisplay/app.py"
+VENV_ACTIVATE_SCRIPT="/home/Shattered/AstraLink/Pi/env/bin/activate"
 FLASK_PORT="5000" # 假设 Flask 运行在 5000 端口
 BROWSER_URL="http://127.0.0.1:$FLASK_PORT"
 BROWSER_START_DELAY_SECONDS=3
