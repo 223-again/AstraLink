@@ -8,13 +8,16 @@ from ha_command import ha_action
 from send_data import send_data
 import random
 from emby import send_movie_name
+from device_finder import find_usb_mic_device, find_i2s_dac_device
 
 movie_name = None
 
 class Application:
-    def __init__(self):
+    def __init__(self, mic_device, i2s_device):
         self.trigger_manager = None
         self.config = None
+        self.mic_device = mic_device
+        self.i2s_device = i2s_device
 
     async def initialize(self):
         self.config = load_config()
@@ -70,19 +73,20 @@ class Application:
             await speech_tts(
                 self.config["baidu"]["api_key"],
                 self.config["baidu"]["secret_key"],
-                active_response
+                active_response,
+                i2s_device=self.i2s_device
             )
 
             # 录音处理
-            recorder = AudioRecorder() 
-            recorder.record_audio_pcm(5, "recording.wav")
+            recorder = AudioRecorder()
+            recorder.record_audio_pcm(5, "recording.pcm", device=self.mic_device)
             recorder.deinit()
 
             # 语音识别
             text = recongize(
                 self.config["baidu"]["api_key"],
                 self.config["baidu"]["secret_key"],
-                "recording.wav"
+                "recording.pcm"
             )
 
             # AI处理
@@ -116,7 +120,8 @@ class Application:
                     tasks.append(speech_tts(
                         self.config["baidu"]["api_key"],
                         self.config["baidu"]["secret_key"],
-                        response["audio_content"]
+                        response["audio_content"],
+                        i2s_device=self.i2s_device
                     ))            
 
                 if tasks:
@@ -131,9 +136,23 @@ class Application:
             await send_data("status", 0)
 
 async def main():
-    app = Application()
+    # --- 设备检测 ---
+    mic_device = find_usb_mic_device()
+    i2s_device = find_i2s_dac_device()
+
+    if not mic_device:
+        print("致命错误: 未找到USB麦克风，程序退出。")
+        return
+    if not i2s_device:
+        print("致命错误: 未找到I2S DAC设备，程序退出。")
+        return
+
+    # --- 初始化应用 ---
+    app = Application(mic_device=mic_device, i2s_device=i2s_device)
     try:
         await app.initialize()
+        print("系统运行中... 按 Ctrl+C 退出")
+        # 主循环/事件监听可以放在这里，目前是休眠
         while True:
             await asyncio.sleep(3600)
     except Exception as e:

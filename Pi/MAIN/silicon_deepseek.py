@@ -1,7 +1,5 @@
 import requests
 import json
-import re
-import time
 from load_config import *
 
 def format_response(audio_content: str, command: str, emoji: str, movie: str):
@@ -13,34 +11,9 @@ def format_response(audio_content: str, command: str, emoji: str, movie: str):
     }
 
 def safe_extract_args(args_str):
-    """从字符串中提取合法 JSON 并解析为字典"""
     try:
-        match = re.search(r'({.*})', args_str)  # 去掉 re.DOTALL
-        if match:
-            clean_args_str = match.group(1)
-            args = json.loads(clean_args_str)
-            if isinstance(args, dict) and all(k in args for k in ["audio_content", "command", "emoji", "movie"]):
-                return args
-    except Exception as e:
-        print(f"解析 JSON 失败: {e}")
-
-    print("尝试手动提取字段...")
-    try:
-        def extract_field(key):
-            pattern = f'"{key}":\\s*"([^"]*?)"'
-            match = re.search(pattern, args_str)
-            return match.group(1) if match else ""
-
-        args = {
-            "audio_content": extract_field("audio_content") or args_str.strip()[:100],
-            "command": extract_field("command") or "movie_on",
-            "emoji": extract_field("emoji") or "thinking",
-            "movie": extract_field("movie") or "0",
-        }
-        print(f"手动提取成功: {args}")
-        return args
-    except Exception as e:
-        print(f"手动提取失败: {e}")
+        return json.loads(args_str)
+    except json.JSONDecodeError:
         return {
             "audio_content": args_str.strip()[:100],
             "command": "movie_on",
@@ -53,6 +26,7 @@ def ask_question(question, SILICON_KEY, last_movie=None):
     config = load_config()
     if not config or "silicon" not in config or "model" not in config["silicon"]:
         raise RuntimeError("配置文件缺少 silicon.model")
+    
     model_name = config["silicon"]["model"]
     url = "https://api.siliconflow.cn/v1/chat/completions"
     headers = {
@@ -67,25 +41,16 @@ def ask_question(question, SILICON_KEY, last_movie=None):
             "type": "function",
             "function": {
                 "name": "format_response",
-                "description": "格式化观影助手的响应，返回音频内容、指令、表情和电影名称",
+                "description": "格式化观影助手的响应",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "audio_content": {"type": "string", "description": "简短风趣的回答文本"},
-                        "command": {
-                            "type": "string",
-                            "enum": ["movie_on", "movie_off"],
-                            "description": "控制电影播放的指令",
-                        },
-                        "emoji": {
-                            "type": "string",
-                            "enum": [
-                                "cool", "laughing", "smiling", "kissing", "tasty",
-                                "thinking", "smirking", "shushing", "surprised",
-                            ],
-                            "description": "表情状态",
-                        },
-                        "movie": {"type": "string", "description": "推荐或停止的电影名称，0表示不推荐"},
+                        "audio_content": {"type": "string", "description": "回答文本"},
+                        "command": {"type": "string", "enum": ["movie_on", "movie_off"]},
+                        "emoji": {"type": "string", "enum": [
+                            "cool", "laughing", "smiling", "kissing", "tasty",
+                            "thinking", "smirking", "shushing", "surprised"]},
+                        "movie": {"type": "string", "description": "电影名称"},
                     },
                     "required": ["audio_content", "command", "emoji", "movie"],
                 },
@@ -94,11 +59,9 @@ def ask_question(question, SILICON_KEY, last_movie=None):
     ]
 
     prompt = f"""你是一个AI观影助手，请严格按照以下要求回答：
-    回复必须简短、风趣幽默，语言轻松俏皮。
-    当用户表示要观影或询问推荐时返回"movie_on"并推荐电影；
-    当用户明确拒绝或结束观影时返回"movie_off"；
-    根据上下文选择合适表情，推荐电影时使用正确命名格式。
-    当前电影上下文：{movie_context}"""
+    1. 回复必须简短风趣
+    2. 使用format_response工具返回结构化数据
+    3. 电影上下文：{movie_context}"""
 
     payload = {
         "model": model_name,
@@ -112,50 +75,54 @@ def ask_question(question, SILICON_KEY, last_movie=None):
         "top_p": 0.95,
         "max_tokens": 1024,
         "enable_thinking": False,
+        "response_format": {"type": "json_object"}
     }
 
     try:
-        json_payload = json.dumps(payload)
-        response = requests.post(url, headers=headers, data=json_payload.encode("utf-8"))
-
-        if response.status_code != 200:
-            print(f"API请求失败，状态码: {response.status_code}")
-            print(f"API响应: {response.text}")
-            return None
-
+        response = requests.post(
+            url,
+            headers=headers,
+            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            timeout=10
+        )
+        response.raise_for_status()
         json_data = response.json()
-        message = json_data.get("choices", [{}])[0].get("message", {})
+        
+        # 打印完整响应
+        #print("完整API响应:", json.dumps(json_data, indent=2, ensure_ascii=False))
+        
+        if not json_data.get("choices"):
+            raise ValueError("API返回空choices")
 
-        if "tool_calls" in message:
-            tool_call = message["tool_calls"][0]
-            if tool_call["function"]["name"] == "format_response":
-                args_str = tool_call["function"].get("arguments", "")
-                args = safe_extract_args(args_str)
-                return args
+        message = json_data["choices"][0].get("message", {})
+        if not message.get("tool_calls"):
+            raise ValueError("响应缺少tool_calls")
 
-        print("未获取到有效的工具调用响应")
+        tool_call = message["tool_calls"][0]
+        if tool_call["function"]["name"] != "format_response":
+            raise ValueError("工具名称不匹配")
+
+        args_str = tool_call["function"].get("arguments", "")
+        #print("原始arguments字符串:", args_str)
+        
+        return safe_extract_args(args_str)
+
+    except requests.exceptions.RequestException as e:
+        print(f"请求失败: {str(e)}")
         return None
-
     except Exception as e:
-        print(f"请求异常: {str(e)}")
+        print(f"处理响应失败: {str(e)}")
         return None
-    finally:
-        if 'response' in locals():
-            response.close()
 
 if __name__ == "__main__":
+    
     config = load_config()
-    if not config or "silicon" not in config or "api_token" not in config["silicon"] or "model" not in config["silicon"]:
-        print("配置文件缺少 silicon.api_token 或 silicon.model，无法继续。")
-    else:
+    if config and "silicon" in config and "api_token" in config["silicon"]:
+        print("\n开始真实API测试...")
         SILICON_KEY = config["silicon"]["api_token"]
-        MODEL_NAME = config["silicon"]["model"]
-        question = "刚刚那部电影怎么样"
-        content = ask_question(question, SILICON_KEY, "疾速追杀4")
+        question = "推荐一部动作片"
+        content = ask_question(question, SILICON_KEY)
         if content:
-            print("Audio Content:", content.get("audio_content"))
-            print("Command:", content.get("command"))
-            print("Emoji:", content.get("emoji"))
-            print("Movie:", content.get("movie"))
+            print("API测试结果:", json.dumps(content, ensure_ascii=False, indent=2))
         else:
-            print("未获取到 Content。") 
+            print("API测试失败")

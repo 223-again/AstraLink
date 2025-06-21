@@ -1,0 +1,23 @@
+{
+   "mcpServers": {
+     "filesystem": {
+       "command": "npx",
+       "args": [
+         "-y",
+         "@modelcontextprotocol/server-filesystem",
+         "/home/Shattered/AstraLink/Pi"
+       ]
+      },
+    "exa": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "exa",
+        "--key",
+        "794252b6-eaf2-4df5-ae52-30c6df1ee025"
+      ]
+     }
+    }
+}
