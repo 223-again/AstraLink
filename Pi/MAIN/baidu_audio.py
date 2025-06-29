@@ -7,8 +7,8 @@ import uuid
 import subprocess
 import wave
 import numpy as np
-from device_finder import find_i2s_dac_device
 from load_config import load_config
+import os
 
 # 配置音频采样率与设备ID
 audiorate = 16000
@@ -111,7 +111,7 @@ def recongize(apikey, sercretkey, audiofile, dev_pid=80001, chunk_size=4096):
         if response:
             response.close()
 
-async def speech_tts(apikey, sercretkey, text_tts, i2s_device, play_on_i2s=True, aue=6, audio_ctrl='{"sampling_rate":16000}'):
+async def speech_tts(apikey, sercretkey, text_tts, play_on_default=True, aue=6, audio_ctrl='{"sampling_rate":16000}'):
     token = get_token(apikey, sercretkey)
     text = binascii.hexlify(text_tts.encode('utf-8')).decode("utf-8")
     text_urlencode = ''
@@ -129,12 +129,14 @@ async def speech_tts(apikey, sercretkey, text_tts, i2s_device, play_on_i2s=True,
         if response.status_code != 200:
             raise ValueError(f"TTS请求失败，状态码: {response.status_code}")
         filename, ext = save_tts_response(response)
-        if filename and play_on_i2s:
-            # 只在wav或pcm时尝试I2S播放
-            if ext in [".wav", ".pcm"]:
-                play_wav_on_i2s(filename, i2s_device)
-            elif ext == ".mp3":
-                print("当前I2S播放不支持mp3格式，请先转换为wav/pcm")
+        if filename and play_on_default:
+            # mp3优先用mpg123，wav/pcm用aplay
+            if ext == ".mp3":
+                os.system(f'mpg123 "{filename}"')
+            elif ext in [".wav", ".pcm"]:
+                os.system(f'aplay "{filename}"')
+            else:
+                print(f"未知音频格式: {ext}，请手动播放 {filename}")
     except Exception as e:
         print(f"TTS处理异常: {str(e)}")
         raise
@@ -142,62 +144,19 @@ async def speech_tts(apikey, sercretkey, text_tts, i2s_device, play_on_i2s=True,
         if response:
             response.close()
 
-def play_wav_on_i2s(filename, i2s_device):
-    if not i2s_device:
-        print("错误: 无法播放，未找到I2S设备。")
-        return
-
-    # 检查声道数，如果是单声道，自动转为双声道
-    with wave.open(filename, 'rb') as wf:
-        channels = wf.getnchannels()
-        if channels == 1:
-            temp_file_2ch = filename.replace('.wav', '_2ch.wav')
-            # 读取音频数据
-            frames = wf.readframes(wf.getnframes())
-            audio = np.frombuffer(frames, dtype=np.int16)
-            # 复制为双声道
-            stereo = np.column_stack((audio, audio)).flatten().astype(np.int16)
-            # 保存为临时双声道文件
-            with wave.open(temp_file_2ch, 'wb') as outwf:
-                outwf.setnchannels(2)
-                outwf.setsampwidth(wf.getsampwidth())
-                outwf.setframerate(wf.getframerate())
-                outwf.writeframes(stereo.tobytes())
-            filename = temp_file_2ch
-
-    # 直接播放处理后的文件
-    cmd = [
-        "aplay",
-        "-D", i2s_device,
-        "-f", "S16_LE",
-        "-r", "16000",
-        "-c", "2",
-        filename
-    ]
-    print(f"[I2S] 正在播放: {filename}")
-    subprocess.run(cmd, check=True)
-
 if __name__ == "__main__":
-    from device_finder import *
-    from load_config import load_config
-
     config = load_config()
     if not config or "baidu" not in config or "api_key" not in config["baidu"] or "secret_key" not in config["baidu"]:
         print("错误：配置文件 config.json 中缺少 baidu.api_key 或 baidu.secret_key。")
     else:
         apikey = config["baidu"]["api_key"]
         sercretkey = config["baidu"]["secret_key"]
-
-        i2s_device = find_i2s_dac_device()
-        if not i2s_device:
-            print("错误：未找到I2S播放设备，无法进行测试。")
-        else:
-            try:
-                print("正在测试语音合成及I2S播放...")
-                asyncio.run(speech_tts(apikey, sercretkey, "你好，世界！这是一个测试。", i2s_device))
-                print("测试完成。")
-            except Exception as e:
-                print(f"测试过程中发生错误: {e}")
+        try:
+            print("正在测试语音合成及系统默认音频播放...")
+            asyncio.run(speech_tts(apikey, sercretkey, "你好，世界！这是一个测试。"))
+            print("测试完成。")
+        except Exception as e:
+            print(f"测试过程中发生错误: {e}")
     #try:
     #    recognized_text = recongize(apikey, sercretkey, "recording.wav")
     #    print(f"识别结果: {recognized_text}")

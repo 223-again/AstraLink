@@ -26,10 +26,10 @@ async def call_scene(scene_entity):
         print("调用场景时发生异常:", str(e))
 
 async def ha_action(command):
-    if command == "movie_on":
+    if command == "light_on":
         print("启动观影模式...")
         await call_scene("scene.kai_qi_guan_ying")
-    elif command == "movie_off":
+    elif command == "light_off":
         print("停止观影模式...")
         await call_scene("scene.wan_cheng_guan_ying")
     else:
