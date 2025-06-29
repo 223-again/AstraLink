@@ -2,7 +2,7 @@ import requests
 import json
 from load_config import *
 
-def format_response(audio_content: str, command: str, emoji: str, movie: str, drink: bool, music: bool):
+def format_response(audio_content: str, command: str, emoji: str, movie: str, drink: bool, music: bool, volume: str = "none"):
     return {
         "audio_content": audio_content,
         "command": command,           # 只用于HA（如灯光）
@@ -10,6 +10,7 @@ def format_response(audio_content: str, command: str, emoji: str, movie: str, dr
         "movie": movie,
         "drink": drink,               # 只用于饮料需求
         "music": music,               # 只用于听歌需求
+        "volume": volume,             # 音量控制命令
     }
 
 def safe_extract_args(args_str):
@@ -21,6 +22,8 @@ def safe_extract_args(args_str):
             data["music"] = False
         if "command" not in data:
             data["command"] = "none"
+        if "volume" not in data:
+            data["volume"] = "none"
         return data
     except json.JSONDecodeError:
         return {
@@ -30,6 +33,7 @@ def safe_extract_args(args_str):
             "movie": "0",
             "drink": False,
             "music": False,
+            "volume": "none",
         }
 
 def ask_question(question, SILICON_KEY, last_movie=None):
@@ -61,11 +65,15 @@ def ask_question(question, SILICON_KEY, last_movie=None):
                         "emoji": {"type": "string", "enum": [
                             "cool", "laughing", "smiling", "kissing", "tasty",
                             "thinking", "smirking", "shushing", "surprised"]},
-                        "movie": {"type": "string", "description": "电影名称"},
+                        "movie": {"type": "string", "description": "具体电影名称，禁止返回模糊类别。无推荐时设为'0'"},
                         "drink": {"type": "boolean", "description": "用户观影时是否明确想喝饮料"},
-                        "music": {"type": "boolean", "description": "用户观影时是否明确想听歌/播放音乐"}
+                        "music": {"type": "boolean", "description": "用户观影时是否明确想听歌/播放音乐"},
+                        "volume": {"type": "string", "enum": [
+                            "none", "volume_up", "volume_down", 
+                            "volume_set_30", "volume_set_50", "volume_set_70", "volume_set_100"
+                        ], "description": "音量控制命令：none=无操作，volume_up=调高音量，volume_down=调低音量，volume_set_X=设置特定音量"}
                     },
-                    "required": ["audio_content", "command", "emoji", "movie", "drink", "music"],
+                    "required": ["audio_content", "command", "emoji", "movie", "drink", "music", "volume"],
                 },
             },
         }
@@ -74,10 +82,21 @@ def ask_question(question, SILICON_KEY, last_movie=None):
     prompt = f"""你是一个AI观影助手，请严格按照以下要求回答：
     1. 回复必须简短风趣
     2. 使用format_response工具返回结构化数据
-    3. 字段说明：command 只用于智能家居（如灯光），drink 为布尔型饮料需求标志，music 为布尔型听歌需求标志。
+    3. 字段说明：command 只用于智能家居（如灯光），drink 为布尔型饮料需求标志，music 为布尔型听歌需求标志，volume 为音量控制命令。
     4. 电影上下文：{movie_context}
     5. 如果用户观影时明确表达想喝饮料，请将 drink 字段设为 true，否则为 false。
     6. 如果用户明确表达想听歌或播放音乐，请将 music 字段设为 true，否则为 false。
+    7. 如果用户明确表达想调节音量（如"声音太小了"、"调高音量"等），请设置相应的 volume 命令：
+       - volume_up: 调高音量
+       - volume_down: 调低音量  
+       - volume_set_30/50/70/100: 设置特定音量
+       - none: 无音量操作
+    8. 电影推荐规则：
+       - movie字段必须返回具体的电影名称，如"复仇者联盟4：终局之战"、"泰坦尼克号"等
+       - 禁止返回模糊类别如"漫威电影"、"动作片"、"喜剧片"等
+       - 如果用户要求推荐某类电影，请选择该类别的经典代表作
+       - 如果用户没有明确要求推荐电影，movie字段设为"0"
+       - 电影名称要准确完整
     """
 
     payload = {

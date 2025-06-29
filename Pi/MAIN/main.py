@@ -8,11 +8,11 @@ from music_interrupt import MusicInterruptHandler
 from baidu_audio import recongize, speech_tts
 from load_config import *
 from mic import AudioRecorder
-from silicon_deepseek import ask_question
+from silicon_ai import ask_question
 from stepper_motor_control import move_motor, TOTAL_TRAVEL_STEPS
 from ha_command import ha_action
-from send_data import send_data
-from emby import send_movie_name
+from data_sender import send_data, send_movie_name
+from volume_control import handle_volume_command
 
 # 音乐目录
 MUSIC_DIR = "/home/Shattered/Music"
@@ -161,7 +161,13 @@ class Application:
             # 6. 响应处理（新增）
             print("开始响应处理...")
             try:
-                # 1. 播放AI的TTS响应
+                # 1. 音量控制（最优先执行）
+                if response.get("volume") and response.get("volume") != "none":
+                    print(f"执行音量控制: {response['volume']}")
+                    volume_result = await handle_volume_command(response["volume"])
+                    print(f"音量控制结果: {volume_result}")
+                
+                # 2. 播放AI的TTS响应
                 if response.get("audio_content"):
                     print(f"播放AI TTS响应: {response['audio_content']}")
                     await speech_tts(
@@ -170,8 +176,8 @@ class Application:
                         response["audio_content"]
                     )
                 
-                # 2. 串行处理所有任务
-                # 2.1 饮料业务（电机）
+                # 3. 串行处理所有任务
+                # 3.1 饮料业务（电机）
                 if response.get("command") == "drink":
                     print("检测到用户观影想喝饮料，启动电机上升到顶，等待5秒后下降到底。")
                     loop = asyncio.get_event_loop()
@@ -179,24 +185,24 @@ class Application:
                     await asyncio.sleep(5)
                     await loop.run_in_executor(None, move_motor, -TOTAL_TRAVEL_STEPS)
                 
-                # 2.2 听歌业务（music）- 使用异步任务播放
+                # 3.2 听歌业务（music）- 使用异步任务播放
                 if response.get("music"):
                     print("检测到用户有听歌需求，随机播放一首歌曲。")
                     # 使用异步任务播放音乐，不等待完成
                     asyncio.create_task(self.music_handler.play_random_music())
                     print("AI音乐播放已启动")
                 
-                # 2.3 其他命令
+                # 3.3 其他命令
                 if response.get("command") and response.get("command") != "drink":
                     print(f"执行命令: {response['command']}")
                     await ha_action(response["command"])
                 
-                # 2.4 表情
+                # 3.4 表情
                 if response.get("emoji"):
                     print(f"发送表情: {response['emoji']}")
                     await send_data("emoji", response["emoji"])
                 
-                # 2.5 电影
+                # 3.5 电影
                 if response.get("movie") != "0":
                     print(f"发送电影: {response['movie']}")
                     await send_movie_name(response["movie"])
