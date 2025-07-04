@@ -52,15 +52,22 @@ function initWebSocket() {
 }
 
 function updateTime() {
-    fetch("/api/time")
-        .then((r) => r.json())
-        .then((d) => {
-            document.getElementById("time").innerText = d.time;
-            document.getElementById("date").innerText = d.date;
-        })
-        .catch(error => {
-            console.error('获取时间失败:', error);
-        });
+    // 直接使用JavaScript获取本地时间，无需API调用
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('zh-CN', {
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    const dateString = now.toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).replace(/\//g, '-');
+    
+    document.getElementById("time").innerText = timeString;
+    document.getElementById("date").innerText = dateString;
 }
 
 function updateYiyan() {

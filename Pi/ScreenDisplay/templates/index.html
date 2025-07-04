@@ -35,8 +35,11 @@
         <img id="emoji" src="/emoji/happy.gif" alt="emoji" />
       </div>
     </div>
+    <!-- Socket.IO客户端库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
     <script src="/static/main.js"></script>
     <script>
+      // 这些函数现在由main.js中的WebSocket处理，保留作为备用
       function updateConversation() {
         fetch("/api/conversation")
           .then((response) => response.json())
@@ -74,8 +77,9 @@
           .catch((error) => console.error("获取状态失败:", error));
       }
 
+      // 备用更新函数，当WebSocket不可用时使用
       function updateAll() {
-        updateTime();
+        // updateTime() 现在由main.js直接处理，无需调用
         updateYiyan();
         updateSensor();
         updateConversation();
@@ -83,7 +87,8 @@
         updateStatus();
       }
 
-      setInterval(updateAll, 2000);
+      // 减少备用轮询频率，主要依赖WebSocket
+      setInterval(updateAll, 10000); // 10秒备用更新
       updateAll();
     </script>
   </body>

@@ -150,13 +150,14 @@ def handle_request_update():
         _current_data.update(sensor_data)
     socketio.emit('sensor_update', sensor_data)
 
-@app.route('/api/time')
-def get_time():
-    now = datetime.datetime.now()
-    return jsonify({
-        'time': now.strftime('%H:%M:%S'),
-        'date': now.strftime('%Y-%m-%d')
-    })
+# 移除时间API，改为前端直接获取
+# @app.route('/api/time')
+# def get_time():
+#     now = datetime.datetime.now()
+#     return jsonify({
+#         'time': now.strftime('%H:%M:%S'),
+#         'date': now.strftime('%Y-%m-%d')
+#     })
 
 @app.route('/api/yiyan')
 def get_yiyan():
