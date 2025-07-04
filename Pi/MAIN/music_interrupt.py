@@ -102,3 +102,72 @@ class MusicInterruptHandler:
                 print(f"停止VLC程序进程失败: {e}")
             finally:
                 self.current_process = None
+    
+    def _normalize_filename(self, filename: str) -> str:
+        """标准化文件名，去除特殊字符和格式"""
+        # 去除文件扩展名
+        name = os.path.splitext(filename)[0]
+        # 替换常见的特殊字符
+        name = name.replace('+', ' ').replace('-', ' ').replace('_', ' ')
+        # 去除方括号内容
+        import re
+        name = re.sub(r'\[.*?\]', '', name)
+        # 去除多余空格
+        name = ' '.join(name.split())
+        return name.lower()
+    
+    def _calculate_similarity(self, query: str, filename: str) -> float:
+        """计算查询词与文件名的相似度"""
+        query = query.lower()
+        normalized_filename = self._normalize_filename(filename)
+        
+        # 完全匹配
+        if query in normalized_filename or normalized_filename in query:
+            return 1.0
+        
+        # 分词匹配
+        query_words = query.split()
+        filename_words = normalized_filename.split()
+        
+        # 计算匹配的单词数
+        matched_words = sum(1 for qw in query_words if any(qw in fw or fw in qw for fw in filename_words))
+        
+        if not query_words:
+            return 0.0
+        
+        return matched_words / len(query_words)
+    
+    async def play_music_by_name(self, music_name: str) -> bool:
+        async with self.lock:
+            await self.stop_current_music()
+            music_files = self.get_music_files()
+            if not music_files:
+                print("没有找到任何音乐文件")
+                return False
+            
+            print(f"搜索音乐: {music_name}")
+            print(f"可用音乐文件: {[os.path.basename(f) for f in music_files]}")
+            
+            # 计算每个文件的相似度
+            similarities = []
+            for file_path in music_files:
+                filename = os.path.basename(file_path)
+                similarity = self._calculate_similarity(music_name, filename)
+                similarities.append((file_path, similarity, filename))
+                print(f"  {filename}: 相似度 {similarity:.2f}")
+            
+            # 按相似度排序，选择最匹配的
+            similarities.sort(key=lambda x: x[1], reverse=True)
+            
+            if not similarities or similarities[0][1] == 0:
+                print(f"未找到匹配的音乐: {music_name}")
+                return False
+            
+            chosen_file, similarity, filename = similarities[0]
+            print(f"选择最匹配的音乐: {filename} (相似度: {similarity:.2f})")
+            
+            success = await self._vlc_program_play(chosen_file)
+            if not success:
+                print(f"VLC程序播放失败: {chosen_file}")
+                return False
+            return True

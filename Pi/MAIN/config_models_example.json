@@ -1,0 +1,38 @@
+{
+    "baidu": {
+        "api_key": "your_baidu_api_key",
+        "secret_key": "your_baidu_secret_key"
+    },
+    "silicon": {
+        "api_token": "your_silicon_api_token",
+        "model": "Qwen/Qwen3-32B",
+        "models": {
+            "task_planning": {
+                "name": "Qwen/Qwen3-32B",
+                "description": "任务编排模型 - 擅长理解和分解复杂指令",
+                "temperature": 0.3,
+                "max_tokens": 512,
+                "enable_thinking": false
+            },
+            "task_execution": {
+                "name": "Qwen/Qwen3-32B", 
+                "description": "子任务执行模型 - 擅长精确的工具调用",
+                "temperature": 0.7,
+                "max_tokens": 1024,
+                "enable_thinking": false
+            },
+            "batch_processing": {
+                "name": "Qwen/Qwen3-32B",
+                "description": "批量处理模型 - 擅长处理多个任务",
+                "temperature": 0.3,
+                "max_tokens": 1024,
+                "enable_thinking": false
+            }
+        }
+    },
+    "ha": {
+        "url": "http://your_home_assistant_url:8123",
+        "api_token": "your_home_assistant_token"
+    },
+    "music_dir": "/path/to/your/music/directory"
+} 

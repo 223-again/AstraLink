@@ -81,6 +81,21 @@ async def send_to_server(server_type, data, timeout=5):
         print(f"未知的服务器类型: {server_type}")
         return None
 
+async def start_chassis(timeout=2):
+    """
+    控制底盘启动的异步GET请求 http://192.168.101.161:8080/
+    """
+    url = "http://192.168.101.161:8080/"
+    try:
+        loop = asyncio.get_event_loop()
+        resp = await loop.run_in_executor(None, lambda: requests.get(url, timeout=timeout))
+        print(f"start_chassis {url} 状态码: {resp.status_code}")
+        resp.close()
+        return resp.status_code
+    except Exception as e:
+        print(f"start_chassis 异常: {e}")
+        return None
+
 # ==================== 测试函数 ====================
 
 async def test_send_data():
