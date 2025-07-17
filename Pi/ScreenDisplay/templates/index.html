@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Emoji Display</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <div class="status-indicators">
+      <div class="wifi-quality">
+        <span id="wifi-icon">📶</span>
+        <span id="wifi-value">--</span>
+      </div>
+      <div class="status-dot" id="status-dot"></div>
+    </div>
+    <div class="sidebar">
+      <div class="time" id="time"></div>
+      <div class="date" id="date"></div>
+      <div class="yiyan" id="yiyan"></div>
+      <div class="weather" id="weather">
+        <span id="weather-icon">☀️</span>
+        <span id="weather-temp">--°C</span>
+        <span id="weather-desc">加载中</span>
+      </div>
+      <div class="sensor" id="sensor">
+        <div class="temperature">温度：<span id="temperature">--</span>°C</div>
+        <div class="humidity">湿度：<span id="humidity">--</span>%</div>
+      </div>
+      <div class="conversation">
+        <div class="message">Q: <span id="message">--</span></div>
+        <div class="response">A: <span id="response">--</span></div>
+      </div>
+    </div>
+    <div class="main">
+      <div class="emoji-box">
+        <img id="emoji" src="/emoji/happy.gif" alt="emoji" />
+      </div>
+    </div>
+    <!-- Socket.IO客户端库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script src="/static/main.js"></script>
+    <script>
+      // 这些函数现在由main.js中的WebSocket处理，保留作为备用
+      function updateConversation() {
+        fetch("/api/conversation")
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.message) {
+              document.getElementById("message").textContent = data.message;
+            }
+            if (data.response) {
+              document.getElementById("response").textContent = data.response;
+            }
+          })
+          .catch((error) => console.error("获取对话历史失败:", error));
+      }
+
+      function updateWifiQuality() {
+        fetch("/api/wifi_quality")
+          .then((response) => response.json())
+          .then((data) => {
+            document.getElementById("wifi-value").textContent = data.quality;
+          })
+          .catch((error) => console.error("获取WiFi信号强度失败:", error));
+      }
+
+      function updateStatus() {
+        fetch("/api/status")
+          .then((response) => response.json())
+          .then((data) => {
+            const dot = document.getElementById("status-dot");
+            if (data.status === 1) {
+              dot.classList.add("active");
+            } else {
+              dot.classList.remove("active");
+            }
+          })
+          .catch((error) => console.error("获取状态失败:", error));
+      }
+
+      // 备用更新函数，当WebSocket不可用时使用
+      function updateAll() {
+        // updateTime() 现在由main.js直接处理，无需调用
+        updateYiyan();
+        updateSensor();
+        updateConversation();
+        updateWifiQuality();
+        updateStatus();
+      }
+
+      // 减少备用轮询频率，主要依赖WebSocket
+      setInterval(updateAll, 10000); // 10秒备用更新
+      updateAll();
+    </script>
+  </body>
+</html>

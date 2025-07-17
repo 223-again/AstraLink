@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  homeassistant:
+    container_name: homeassistant
+    image: ghcr.io/home-assistant/home-assistant:stable
+    restart: unless-stopped
+    privileged: true
+    network_mode: "host"
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - /home/Shattered/HA/config:/config
+      - /run/dbus:/run/dbus:ro 
