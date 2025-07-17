@@ -6,7 +6,6 @@ import time
 
 # 本地API端点配置
 ENDPOINTS = {
-    "wifi_quality": "/api/wifi_quality",
     "ai_chat":     "/api/add_history",
     "status":      "/api/status",
     "emoji":       "/api/mood",
@@ -102,28 +101,23 @@ async def test_send_data():
     """测试send_data函数"""
     print("=== 测试send_data函数 ===")
     
-    # 测试wifi_quality
-    print("\n1. 测试wifi_quality发送...")
-    result = await send_data("wifi_quality", "85")
-    print(f"wifi_quality测试结果: {result.status_code if result else '失败'}")
-    
     # 测试ai_chat
-    print("\n2. 测试ai_chat发送...")
+    print("\n1. 测试ai_chat发送...")
     result = await send_data("ai_chat", "用户消息", "AI回复")
     print(f"ai_chat测试结果: {result.status_code if result else '失败'}")
     
     # 测试status
-    print("\n3. 测试status发送...")
+    print("\n2. 测试status发送...")
     result = await send_data("status", "1")
     print(f"status测试结果: {result.status_code if result else '失败'}")
     
     # 测试emoji
-    print("\n4. 测试emoji发送...")
+    print("\n3. 测试emoji发送...")
     result = await send_data("emoji", "smiling")
     print(f"emoji测试结果: {result.status_code if result else '失败'}")
     
     # 测试未知属性
-    print("\n5. 测试未知属性...")
+    print("\n4. 测试未知属性...")
     result = await send_data("unknown", "test")
     print(f"未知属性测试结果: {result}")
 

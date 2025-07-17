@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星链风格 - ScreenDisplay</title>
+    <link rel="stylesheet" href="/static/starlink_style.css" />
+</head>
+<body>
+    <!-- 连接状态指示器 -->
+    <div class="connection-status" id="connection-status"></div>
+    
+    <!-- 主容器 -->
+    <div class="container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <!-- 时间显示 -->
+            <div class="time" id="time">00:00:00</div>
+            <div class="date" id="date">2024-01-01</div>
+            
+            <!-- 一言显示 -->
+            <div class="yiyan" id="yiyan">正在加载一言...</div>
+            
+            <!-- 天气显示 -->
+            <div class="weather" id="weather">
+                <span id="weather-icon">☀️</span>
+                <span id="weather-temp">--°C</span>
+                <span id="weather-desc">加载中</span>
+            </div>
+            
+            <!-- 传感器显示 -->
+            <div class="sensor" id="sensor">
+                <div class="temperature">
+                    <span>温度</span>
+                    <span id="temperature">--°C</span>
+                </div>
+                <div class="humidity">
+                    <span>湿度</span>
+                    <span id="humidity">--%</span>
+                </div>
+            </div>
+            
+            <!-- 对话显示 -->
+            <div class="conversation">
+                <div class="message">Q: <span id="message">等待对话...</span></div>
+                <div class="response">A: <span id="response">等待回复...</span></div>
+            </div>
+        </div>
+        
+        <!-- 主显示区域 -->
+        <div class="main">
+            <!-- 星链轨道效果 -->
+            <div class="orbit"></div>
+            
+            <!-- 表情显示 -->
+            <div class="emoji-box">
+                <img id="emoji" src="/emoji/default.gif" alt="emoji" />
+            </div>
+        </div>
+    </div>
+    
+    <!-- 状态指示器 -->
+    <div class="status-indicators">
+        <div class="wifi-quality">
+            <span id="wifi-icon">📶</span>
+            <span id="wifi-value">--</span>
+        </div>
+        <div class="status-dot" id="status-dot"></div>
+    </div>
+    
+    <!-- Socket.IO客户端库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script src="/static/main.js"></script>
+    
+    <script>
+        // 星链风格特定的JavaScript
+        console.log('🚀 星链风格界面已加载');
+        
+        // 连接状态管理
+        function updateConnectionStatus(connected) {
+            const statusElement = document.getElementById('connection-status');
+            if (connected) {
+                statusElement.classList.add('connected');
+                statusElement.title = 'WebSocket已连接';
+            } else {
+                statusElement.classList.remove('connected');
+                statusElement.title = 'WebSocket未连接';
+            }
+        }
+        
+        // 初始化连接状态
+        updateConnectionStatus(false);
+        
+        // 监听WebSocket连接状态
+        if (typeof socket !== 'undefined') {
+            socket.on('connect', function() {
+                updateConnectionStatus(true);
+                console.log('🔗 WebSocket连接成功');
+            });
+            
+            socket.on('disconnect', function() {
+                updateConnectionStatus(false);
+                console.log('🔌 WebSocket连接断开');
+            });
+        }
+        
+        // 添加一些星链风格的交互效果
+        document.addEventListener('keydown', function(event) {
+            switch(event.key) {
+                case 'f':
+                case 'F':
+                    toggleFullScreen();
+                    break;
+                case 'r':
+                case 'R':
+                    if (event.ctrlKey) {
+                        event.preventDefault();
+                        forceUpdateSensor();
+                    }
+                    break;
+                case 't':
+                case 'T':
+                    // 测试轨道动画
+                    const orbit = document.querySelector('.orbit');
+                    orbit.style.animationDuration = '5s';
+                    setTimeout(() => {
+                        orbit.style.animationDuration = '20s';
+                    }, 5000);
+                    break;
+            }
+        });
+        
+        // 鼠标悬停效果
+        document.querySelector('.emoji-box').addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.05)';
+        });
+        
+        document.querySelector('.emoji-box').addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+        });
+        
+        // 定期更新连接状态显示
+        setInterval(() => {
+            if (typeof socket !== 'undefined' && socket.connected) {
+                updateConnectionStatus(true);
+            } else {
+                updateConnectionStatus(false);
+            }
+        }, 1000);
+
+        // 星链风格：补全WiFi和状态显示
+        function updateWifiDisplay(quality) {
+            const wifiValue = document.getElementById("wifi-value");
+            if (wifiValue) {
+                wifiValue.textContent = quality + "%";
+                wifiValue.classList.add("data-update");
+                setTimeout(() => wifiValue.classList.remove("data-update"), 300);
+            }
+        }
+        function updateStatusDisplay(status) {
+            const dot = document.getElementById("status-dot");
+            if (dot) {
+                if (status == 1) {
+                    dot.classList.add("active");
+                } else {
+                    dot.classList.remove("active");
+                }
+                dot.classList.add("data-update");
+                setTimeout(() => dot.classList.remove("data-update"), 300);
+            }
+        }
+    </script>
+</body>
+</html> 

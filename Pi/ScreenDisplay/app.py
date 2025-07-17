@@ -8,6 +8,8 @@ import asyncio
 import concurrent.futures
 from functools import lru_cache
 import json
+import subprocess
+import re
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -34,8 +36,7 @@ _conversation = {
     'response': None
 }
 
-# 添加WiFi信号和状态变量
-_wifi_quality = 0
+# 添加状态变量
 _status = 0
 
 # 缓存机制
@@ -61,6 +62,37 @@ def get_cached_data(key):
 def set_cached_data(key, data):
     cache_key = get_cache_key(key)
     _cache[cache_key] = (time.time(), data)
+
+def get_wifi_quality():
+    """获取WiFi信号质量"""
+    try:
+        # 使用iwconfig命令获取WiFi信息
+        result = subprocess.run(['iwconfig'], capture_output=True, text=True, timeout=5)
+        if result.returncode == 0:
+            # 查找信号质量
+            match = re.search(r'Link Quality=(\d+)/(\d+)', result.stdout)
+            if match:
+                current = int(match.group(1))
+                max_quality = int(match.group(2))
+                quality = int((current / max_quality) * 100)
+                return min(100, max(0, quality))  # 确保在0-100范围内
+        
+        # 如果iwconfig失败，尝试使用iw命令
+        result = subprocess.run(['iw', 'dev'], capture_output=True, text=True, timeout=5)
+        if result.returncode == 0:
+            # 查找信号强度
+            match = re.search(r'signal: (-\d+) dBm', result.stdout)
+            if match:
+                signal_dbm = int(match.group(1))
+                # 将dBm转换为百分比（-100dBm = 0%, -50dBm = 100%）
+                quality = max(0, min(100, int(((signal_dbm + 100) / 50) * 100)))
+                return quality
+        
+        # 如果都失败，返回默认值
+        return 75
+    except Exception as e:
+        print(f"获取WiFi质量失败: {e}")
+        return 75
 
 def get_ha_sensor_data():
     # 检查缓存
@@ -128,6 +160,22 @@ def update_sensor_data():
 sensor_thread = threading.Thread(target=update_sensor_data, daemon=True)
 sensor_thread.start()
 
+def update_wifi_quality():
+    """更新WiFi质量数据"""
+    time.sleep(2)  # 初始延迟
+    while True:
+        try:
+            wifi_quality = get_wifi_quality()
+            # 通过WebSocket推送WiFi质量更新
+            socketio.emit('wifi_update', {'quality': wifi_quality})
+        except Exception as e:
+            print(f"Error in update_wifi_quality: {e}")
+        time.sleep(10)  # 每10秒更新一次WiFi质量
+
+# 启动WiFi质量更新线程
+wifi_thread = threading.Thread(target=update_wifi_quality, daemon=True)
+wifi_thread.start()
+
 current_mood = 'default'
 
 # WebSocket事件处理
@@ -137,6 +185,9 @@ def handle_connect():
     # 连接时立即发送当前数据
     with _data_lock:
         socketio.emit('sensor_update', _current_data)
+    # 立即发送WiFi质量
+    wifi_quality = get_wifi_quality()
+    socketio.emit('wifi_update', {'quality': wifi_quality})
 
 @socketio.on('disconnect')
 def handle_disconnect():
@@ -149,15 +200,6 @@ def handle_request_update():
     with _data_lock:
         _current_data.update(sensor_data)
     socketio.emit('sensor_update', sensor_data)
-
-# 移除时间API，改为前端直接获取
-# @app.route('/api/time')
-# def get_time():
-#     now = datetime.datetime.now()
-#     return jsonify({
-#         'time': now.strftime('%H:%M:%S'),
-#         'date': now.strftime('%Y-%m-%d')
-#     })
 
 @app.route('/api/yiyan')
 def get_yiyan():
@@ -207,6 +249,11 @@ def force_update_sensor():
 def index():
     return render_template('index.html')
 
+@app.route('/starlink')
+def starlink():
+    """星链风格界面"""
+    return render_template('starlink.html')
+
 @app.route('/emoji/<filename>')
 def emoji(filename):
     return send_from_directory('emoji', filename)
@@ -214,10 +261,11 @@ def emoji(filename):
 @app.route('/api/add_history', methods=['POST'])
 def add_history():
     data = request.get_json() or request.form
-    message = data.get('message')
-    response = data.get('response')
+    message = data.get('message', '')
+    response = data.get('response', '')
     
-    if message and response:
+    # 允许其中一个字段为空，但不能两个都为空
+    if message or response:
         global _conversation
         _conversation = {
             'message': message,
@@ -226,25 +274,13 @@ def add_history():
         # 通过WebSocket推送对话更新
         socketio.emit('conversation_update', _conversation)
         return jsonify({'status': 'ok'})
-    return jsonify({'status': 'error', 'msg': 'Missing message or response'}), 400
+    return jsonify({'status': 'error', 'msg': 'Both message and response cannot be empty'}), 400
 
 @app.route('/api/conversation')
 def get_conversation():
     return jsonify(_conversation)
 
-@app.route('/api/wifi_quality', methods=['GET', 'POST'])
-def wifi_quality():
-    global _wifi_quality
-    if request.method == 'POST':
-        data = request.get_json() or request.form
-        quality = data.get('wifi_quality')
-        if quality is not None:
-            _wifi_quality = int(quality)
-            # 通过WebSocket推送WiFi质量更新
-            socketio.emit('wifi_update', {'quality': _wifi_quality})
-            return jsonify({'status': 'ok'})
-        return jsonify({'status': 'error', 'msg': 'No quality value provided'}), 400
-    return jsonify({'quality': _wifi_quality})
+
 
 @app.route('/api/status', methods=['GET', 'POST'])
 def status():
@@ -261,4 +297,4 @@ def status():
     return jsonify({'status': _status})
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000, debug=False)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=False, allow_unsafe_werkzeug=True)

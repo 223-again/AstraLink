@@ -5,9 +5,11 @@ import subprocess
 from flask import Flask, request, jsonify
 
 # 配置参数
-EMBY_URL = "http://192.168.101.236:8091"  # Emby 服务器地址
-API_KEY = "xxxxxxxxxxxxxxxxxxxx"  # Emby API 密钥
+EMBY_URL = "http://192.168.101.236:8098"  # Emby 服务器地址
+API_KEY = "xxxxxxxxxxxxxxxxxxxxxxxxx"  # Emby API 密钥
 MPV_PATH = r"D:\mpv\mpv.exe"
+POTPLAYER_PATH = r"C:\Program Files\DAUM\PotPlayer\PotPlayerMini64.exe"
+VLC_PATH = r"D:\VideoLAN\VLC\vlc.exe"
 
 app = Flask(__name__)
 
@@ -79,22 +81,22 @@ def play_movie():
         print(f"影片文件格式: {file_extension}")
 
         if file_extension == "mkv":
-            stream_url = f"{EMBY_URL}/Videos/{movie_id}/stream.mkv?api_key={API_KEY}"
+            stream_url = f"{EMBY_URL}/Videos/{movie_id}/stream.mkv?api_key={API_KEY}&static=true"
         elif file_extension == "mp4":
-            stream_url = f"{EMBY_URL}/Videos/{movie_id}/stream.mp4?api_key={API_KEY}"
+            stream_url = f"{EMBY_URL}/Videos/{movie_id}/stream.mp4?api_key={API_KEY}&static=true"
         elif file_extension == "strm":
-            stream_url = f"{EMBY_URL}/Videos/{movie_id}/stream.mp4?api_key={API_KEY}"
+            stream_url = f"{EMBY_URL}/Videos/{movie_id}/stream.mp4?api_key={API_KEY}&static=true"
         else:
             return jsonify({"error": f"不支持的文件格式: {file_extension}"}), 400
 
         print(f"播放链接: {stream_url}")
 
-        # 调用 mpv 全屏播放
         try:
-            subprocess.Popen([MPV_PATH, "--fullscreen", stream_url])
+            subprocess.Popen([VLC_PATH, "--fullscreen", "--play-and-exit", stream_url])
+            
         except Exception as e:
-            print(f"调用 mpv 失败: {e}")
-            return jsonify({"error": "无法调用 mpv"}), 500
+            print(f"调用播放器失败: {e}")
+            return jsonify({"error": "无法调用播放器"}), 500
 
         return jsonify({"message": "播放成功", "movie_id": movie_id, "stream_url": stream_url}), 200
 

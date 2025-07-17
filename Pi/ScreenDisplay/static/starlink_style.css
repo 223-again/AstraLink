@@ -1,0 +1,481 @@
+/* 星链风格 - 炫酷太空主题 */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+:root {
+  --starlink-primary: #00d4ff;
+  --starlink-secondary: #ff6b35;
+  --starlink-accent: #7b2cbf;
+  --starlink-dark: #0a0a0a;
+  --starlink-darker: #050505;
+  --starlink-glow: #00d4ff;
+  --starlink-text: #ffffff;
+  --starlink-grid: rgba(0, 212, 255, 0.1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--starlink-dark);
+  color: var(--starlink-text);
+  font-family: 'Orbitron', monospace;
+  overflow: hidden;
+  position: relative;
+}
+
+/* 星空背景 */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(2px 2px at 20px 30px, #eee, transparent),
+    radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), transparent),
+    radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+    radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.6), transparent),
+    radial-gradient(2px 2px at 160px 30px, #ddd, transparent);
+  background-repeat: repeat;
+  background-size: 200px 100px;
+  animation: stars 20s linear infinite;
+  z-index: -2;
+}
+
+@keyframes stars {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-100px); }
+}
+
+/* 网格背景 */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(var(--starlink-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--starlink-grid) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: grid 15s linear infinite;
+  z-index: -1;
+}
+
+@keyframes grid {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(50px, 50px); }
+}
+
+/* 主容器 */
+.container {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  height: 100vh;
+  position: relative;
+}
+
+/* 侧边栏 */
+.sidebar {
+  background: linear-gradient(135deg, rgba(10, 10, 10, 0.9), rgba(5, 5, 5, 0.95));
+  backdrop-filter: blur(20px);
+  border-right: 2px solid var(--starlink-primary);
+  padding: 30px;
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--starlink-primary), transparent);
+  animation: scanline 3s ease-in-out infinite;
+}
+
+@keyframes scanline {
+  0%, 100% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+}
+
+/* 时间显示 */
+.time {
+  font-size: 4em;
+  font-weight: 900;
+  color: var(--starlink-primary);
+  text-shadow: 0 0 20px var(--starlink-glow);
+  text-align: center;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.time::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--starlink-primary), transparent);
+}
+
+.date {
+  font-size: 1.5em;
+  color: var(--starlink-secondary);
+  text-align: center;
+  margin-bottom: 40px;
+  text-shadow: 0 0 10px var(--starlink-secondary);
+}
+
+/* 一言显示 */
+.yiyan {
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid var(--starlink-primary);
+  border-radius: 15px;
+  padding: 20px;
+  margin-bottom: 30px;
+  font-size: 1.2em;
+  line-height: 1.6;
+  position: relative;
+  overflow: hidden;
+}
+
+.yiyan::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.2), transparent);
+  animation: shimmer 4s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* 天气显示 */
+.weather {
+  background: rgba(255, 107, 53, 0.1);
+  border: 1px solid var(--starlink-secondary);
+  border-radius: 15px;
+  padding: 15px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  position: relative;
+}
+
+.weather::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 30%, rgba(255, 107, 53, 0.1) 50%, transparent 70%);
+  animation: weatherGlow 6s ease-in-out infinite;
+}
+
+@keyframes weatherGlow {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+#weather-icon {
+  font-size: 2em;
+}
+
+/* 传感器显示 */
+.sensor {
+  background: rgba(123, 44, 191, 0.1);
+  border: 1px solid var(--starlink-accent);
+  border-radius: 15px;
+  padding: 15px;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.sensor::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(123, 44, 191, 0.2), transparent);
+  animation: sensorPulse 4s ease-in-out infinite;
+}
+
+@keyframes sensorPulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+
+.temperature, .humidity {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 1.1em;
+}
+
+/* 对话显示 */
+.conversation {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 15px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.conversation .message {
+  color: var(--starlink-primary);
+  margin-bottom: 8px;
+  font-size: 0.9em;
+}
+
+.conversation .response {
+  color: var(--starlink-secondary);
+  font-size: 0.9em;
+}
+
+/* 主显示区域 */
+.main {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 星链轨道效果 */
+.orbit {
+  position: absolute;
+  width: 800px;
+  height: 800px;
+  border: 2px solid rgba(0, 212, 255, 0.3);
+  border-radius: 50%;
+  animation: orbit 20s linear infinite;
+}
+
+.orbit::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  background: var(--starlink-primary);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--starlink-glow);
+  animation: satellite 20s linear infinite;
+}
+
+@keyframes orbit {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes satellite {
+  0% { transform: translateX(-50%) rotate(0deg); }
+  100% { transform: translateX(-50%) rotate(360deg); }
+}
+
+/* 表情显示 */
+.emoji-box {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(0, 212, 255, 0.1), rgba(5, 5, 5, 0.8));
+  border: 3px solid var(--starlink-primary);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  z-index: 10;
+  box-shadow: 
+    0 0 50px rgba(0, 212, 255, 0.3),
+    inset 0 0 50px rgba(0, 212, 255, 0.1);
+  animation: emojiGlow 4s ease-in-out infinite;
+}
+
+.emoji-box::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: linear-gradient(45deg, var(--starlink-primary), var(--starlink-secondary), var(--starlink-accent));
+  background-clip: border-box;
+  animation: borderRotate 8s linear infinite;
+  z-index: -1;
+}
+
+@keyframes emojiGlow {
+  0%, 100% { 
+    box-shadow: 
+      0 0 50px rgba(0, 212, 255, 0.3),
+      inset 0 0 50px rgba(0, 212, 255, 0.1);
+  }
+  50% { 
+    box-shadow: 
+      0 0 80px rgba(0, 212, 255, 0.5),
+      inset 0 0 80px rgba(0, 212, 255, 0.2);
+  }
+}
+
+@keyframes borderRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.emoji-box img {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.5));
+}
+
+/* 状态指示器 */
+.status-indicators {
+  position: fixed;
+  top: 30px;
+  right: 30px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  z-index: 1000;
+}
+
+.wifi-quality {
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid var(--starlink-primary);
+  border-radius: 10px;
+  padding: 10px 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.status-dot {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background-color: #666;
+  box-shadow: 0 0 10px #666;
+  animation: statusPulse 2s infinite;
+  transition: all 0.3s ease;
+}
+
+.status-dot.active {
+  background-color: var(--starlink-primary);
+  box-shadow: 0 0 20px var(--starlink-glow);
+  animation: statusPulse 1s infinite;
+}
+
+@keyframes statusPulse {
+  0% { transform: scale(0.95); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(0.95); }
+}
+
+/* 数据更新动画 */
+.data-update {
+  animation: dataUpdate 0.5s ease-in-out;
+}
+
+@keyframes dataUpdate {
+  0% {
+    transform: scale(1);
+    color: inherit;
+  }
+  50% {
+    transform: scale(1.1);
+    color: var(--starlink-primary);
+    text-shadow: 0 0 15px var(--starlink-glow);
+  }
+  100% {
+    transform: scale(1);
+    color: inherit;
+  }
+}
+
+/* 连接状态指示器 */
+.connection-status {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background-color: #ff4444;
+  box-shadow: 0 0 10px #ff4444;
+  z-index: 1001;
+  transition: all 0.3s ease;
+}
+
+.connection-status.connected {
+  background-color: var(--starlink-primary);
+  box-shadow: 0 0 15px var(--starlink-glow);
+  animation: connectionPulse 2s ease-in-out infinite;
+}
+
+@keyframes connectionPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .container {
+    grid-template-columns: 350px 1fr;
+  }
+  
+  .emoji-box {
+    width: 400px;
+    height: 400px;
+  }
+  
+  .orbit {
+    width: 600px;
+    height: 600px;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  
+  .sidebar {
+    border-right: none;
+    border-bottom: 2px solid var(--starlink-primary);
+  }
+  
+  .emoji-box {
+    width: 300px;
+    height: 300px;
+  }
+  
+  .orbit {
+    width: 400px;
+    height: 400px;
+  }
+} 

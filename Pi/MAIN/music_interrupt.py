@@ -34,7 +34,6 @@ class MusicInterruptHandler:
                 if self._is_valid_audio(file_path):
                     valid_files.append(file_path)
         
-        print(f"找到 {len(valid_files)} 个有效音乐文件")
         return valid_files
     
     def _is_valid_audio(self, file_path: str) -> bool:
@@ -69,7 +68,6 @@ class MusicInterruptHandler:
                 file_path
             ]
             
-            print(f"执行VLC命令: {' '.join(cmd)}")
             self.current_process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.DEVNULL,
@@ -78,7 +76,6 @@ class MusicInterruptHandler:
             
             await asyncio.sleep(0.5)
             if self.current_process.poll() is None:
-                print(f"VLC程序播放已启动: {os.path.basename(file_path)}")
                 return True
             else:
                 print("VLC程序启动失败")
@@ -146,7 +143,6 @@ class MusicInterruptHandler:
                 return False
             
             print(f"搜索音乐: {music_name}")
-            print(f"可用音乐文件: {[os.path.basename(f) for f in music_files]}")
             
             # 计算每个文件的相似度
             similarities = []
@@ -154,7 +150,6 @@ class MusicInterruptHandler:
                 filename = os.path.basename(file_path)
                 similarity = self._calculate_similarity(music_name, filename)
                 similarities.append((file_path, similarity, filename))
-                print(f"  {filename}: 相似度 {similarity:.2f}")
             
             # 按相似度排序，选择最匹配的
             similarities.sort(key=lambda x: x[1], reverse=True)

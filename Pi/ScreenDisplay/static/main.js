@@ -144,19 +144,48 @@ function updateSensorDisplay(data) {
 function updateConversationDisplay(data) {
     // 更新对话显示逻辑
     if (data.message && data.response) {
-        // 这里可以添加对话显示的具体逻辑
+        // 更新用户消息
+        const messageElement = document.getElementById("message");
+        if (messageElement) {
+            messageElement.textContent = data.message;
+            messageElement.classList.add("data-update");
+            setTimeout(() => messageElement.classList.remove("data-update"), 300);
+        }
+        
+        // 更新AI回复
+        const responseElement = document.getElementById("response");
+        if (responseElement) {
+            responseElement.textContent = data.response;
+            responseElement.classList.add("data-update");
+            setTimeout(() => responseElement.classList.remove("data-update"), 300);
+        }
+        
         console.log('对话更新:', data);
     }
 }
 
 function updateWifiDisplay(quality) {
     // 更新WiFi质量显示逻辑
-    console.log('WiFi质量更新:', quality);
+    const wifiValue = document.getElementById("wifi-value");
+    if (wifiValue) {
+        wifiValue.textContent = quality + "%";
+        wifiValue.classList.add("data-update");
+        setTimeout(() => wifiValue.classList.remove("data-update"), 300);
+    }
 }
 
 function updateStatusDisplay(status) {
     // 更新状态显示逻辑
-    console.log('状态更新:', status);
+    const dot = document.getElementById("status-dot");
+    if (dot) {
+        if (status == 1) {
+            dot.classList.add("active");
+        } else {
+            dot.classList.remove("active");
+        }
+        dot.classList.add("data-update");
+        setTimeout(() => dot.classList.remove("data-update"), 300);
+    }
 }
 
 function forceUpdateSensor() {

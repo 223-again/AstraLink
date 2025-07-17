@@ -4,8 +4,23 @@
 FLASK_APP_PATH="/home/Shattered/AstraLink/Pi/ScreenDisplay/app.py"
 VENV_ACTIVATE_SCRIPT="/home/Shattered/AstraLink/Pi/env/bin/activate"
 FLASK_PORT="5000" # 假设 Flask 运行在 5000 端口
-BROWSER_URL="http://127.0.0.1:$FLASK_PORT"
 BROWSER_START_DELAY_SECONDS=3
+
+# --- 样式选择 (快速修改这里) ---
+# 1 = 原始样式 (经典绿色主题)
+# 2 = 星链样式 (炫酷太空主题)
+STYLE_CHOICE="2"
+
+if [ "$STYLE_CHOICE" = "1" ]; then
+    echo "🎨 选择原始样式..."
+    BROWSER_URL="http://127.0.0.1:$FLASK_PORT/"
+elif [ "$STYLE_CHOICE" = "2" ]; then
+    echo "🚀 选择星链样式..."
+    BROWSER_URL="http://127.0.0.1:$FLASK_PORT/starlink"
+else
+    echo "❌ 无效样式选择，使用默认原始样式"
+    BROWSER_URL="http://127.0.0.1:$FLASK_PORT/"
+fi
 
 # --- 捕获 SIGINT (CTRL+C) 以优雅地退出 ---
 # 当按下 CTRL+C 时，这个函数会被执行
